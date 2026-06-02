@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>TCRR 2025 互動問答</title>
+<style>
+  :root{
+    --bg:#0f1226; --bg2:#1a1f3c; --card:#222a52; --ink:#f4f6ff;
+    --muted:#9aa3c7; --line:#343d6b;
+    --red:#e2453c; --blue:#1469c7; --yellow:#d89e00; --green:#26890c;
+    --accent:#ffd23f; --good:#2ec27e; --bad:#ff5d5d;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; height:100%}
+  body{
+    font-family:"Noto Sans TC","Segoe UI",system-ui,-apple-system,sans-serif;
+    background:radial-gradient(1200px 800px at 50% -10%,#27306a,var(--bg)) fixed;
+    color:var(--ink); min-height:100%;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wrap{width:100%; max-width:760px; padding:18px 16px 40px; flex:1}
+  h1{font-size:1.45rem; margin:.2em 0 .1em; letter-spacing:.5px}
+  .sub{color:var(--muted); font-size:.92rem; margin:0 0 18px}
+  .card{background:linear-gradient(180deg,var(--card),#1c2348);
+    border:1px solid var(--line); border-radius:18px; padding:20px;
+    box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .hidden{display:none !important}
+  label{display:block; font-size:.9rem; color:var(--muted); margin:14px 0 6px}
+  input[type=text],input[type=password]{
+    width:100%; padding:14px 16px; font-size:1.1rem; border-radius:12px;
+    border:1px solid var(--line); background:#11163099; color:var(--ink); outline:none}
+  input:focus{border-color:var(--accent)}
+  button{font-family:inherit; cursor:pointer; border:none; border-radius:12px;
+    font-size:1.05rem; font-weight:700; padding:14px 18px; color:#fff;
+    background:var(--accent); color:#1a1300; transition:transform .05s, filter .15s}
+  button:active{transform:scale(.98)}
+  button:disabled{filter:grayscale(.6) brightness(.7); cursor:not-allowed}
+  .btn-block{width:100%; margin-top:16px}
+  .btn-ghost{background:#2b3566; color:var(--ink); border:1px solid var(--line)}
+  .row{display:flex; gap:10px; flex-wrap:wrap}
+  .row > *{flex:1}
+  .pill{display:inline-block; background:#2b3566; color:var(--muted);
+    border-radius:999px; padding:4px 12px; font-size:.8rem; margin-bottom:10px}
+  .timer{font-size:2.4rem; font-weight:800; text-align:center; color:var(--accent)}
+  .timerbar{height:10px; border-radius:999px; background:#11163088; overflow:hidden; margin:8px 0 18px}
+  .timerbar > i{display:block; height:100%; background:linear-gradient(90deg,var(--good),var(--accent),var(--bad)); width:100%; transition:width 1s linear}
+  .q{font-size:1.35rem; font-weight:700; line-height:1.45; margin:6px 0 18px}
+  .answers{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media(max-width:480px){ .answers{grid-template-columns:1fr} .q{font-size:1.2rem} }
+  .ans{display:flex; align-items:center; gap:12px; min-height:74px; text-align:left;
+    font-size:1.08rem; line-height:1.35; color:#fff; border-radius:14px; padding:14px}
+  .ans .ic{font-size:1.5rem; flex:0 0 auto}
+  .ans.A{background:var(--red)} .ans.B{background:var(--blue)}
+  .ans.C{background:var(--yellow); color:#241c00} .ans.D{background:var(--green)}
+  .ans.dim{opacity:.35} .ans.pick{outline:4px solid #fff; outline-offset:2px}
+  .ans.correct{outline:5px solid var(--good); outline-offset:2px}
+  .big{font-size:1.6rem; font-weight:800; text-align:center; margin:8px 0}
+  .center{text-align:center}
+  .muted{color:var(--muted)}
+  .note{background:#11163077; border:1px dashed var(--line); border-radius:12px;
+    padding:12px 14px; margin-top:14px; color:#dfe4ff; font-size:.96rem; line-height:1.5}
+  .lb{list-style:none; margin:12px 0 0; padding:0}
+  .lb li{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px;
+    background:#11163066; border:1px solid var(--line); border-radius:12px}
+  .lb .rk{font-weight:800; width:30px; text-align:center; color:var(--accent)}
+  .lb .nm{flex:1; font-weight:600}
+  .lb .sc{font-weight:800; color:var(--good)}
+  .lb li.me{outline:2px solid var(--accent)}
+  .lb li.top1 .rk{font-size:1.3rem}
+  .qr{background:#fff; padding:12px; border-radius:14px; display:inline-block}
+  .url{word-break:break-all; font-size:.9rem; color:var(--accent); margin-top:8px}
+  .hostbar{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+  .hostbar button{flex:1; min-width:120px}
+  .tag{font-size:.8rem; color:var(--muted)}
+  .dist{display:flex; gap:8px; margin-top:14px}
+  .dist > div{flex:1; text-align:center; background:#11163066; border-radius:10px; padding:8px 4px}
+  .dist .bar{height:60px; display:flex; align-items:flex-end; justify-content:center}
+  .dist .bar i{display:block; width:60%; border-radius:6px 6px 0 0; min-height:4px}
+  .dist .A i{background:var(--red)} .dist .B i{background:var(--blue)}
+  .dist .C i{background:var(--yellow)} .dist .D i{background:var(--green)}
+  .err{color:var(--bad); margin-top:10px; font-size:.9rem; min-height:1.2em}
+  .topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px}
+  .topbar .you{font-size:.9rem; color:var(--muted)}
+  .topbar .you b{color:var(--ink)}
+  a.hostlink{color:var(--muted); font-size:.82rem; text-decoration:none; border-bottom:1px dotted var(--muted)}
+  footer{color:#6b73a0; font-size:.78rem; margin-top:22px; text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= 進入畫面 ================= -->
+  <section id="screen-join" class="card">
+    <h1>🏋️ TCRR 2025 互動問答</h1>
+    <p class="sub">輸入暱稱即可加入，準備好搶答！</p>
+    <label for="nick">你的暱稱</label>
+    <input id="nick" type="text" maxlength="16" placeholder="例如：小明教練" autocomplete="off">
+    <button id="btn-join" class="btn-block">加入</button>
+    <div id="join-err" class="err"></div>
+    <p style="margin-top:20px"><a href="#host" class="hostlink" id="to-host">我是主持人 →</a></p>
+  </section>
+
+  <!-- ================= 主持人登入 ================= -->
+  <section id="screen-hostlogin" class="card hidden">
+    <h1>主持人登入</h1>
+    <p class="sub">輸入主持人 PIN 碼以進入控場畫面。</p>
+    <label for="pin">PIN 碼</label>
+    <input id="pin" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
+    <button id="btn-hostlogin" class="btn-block">進入控場</button>
+    <div id="host-err" class="err"></div>
+    <p style="margin-top:16px"><a href="#" class="hostlink" id="back-join">← 回到學員加入</a></p>
+  </section>
+
+  <!-- ================= 學員：等待室 ================= -->
+  <section id="screen-lobby" class="card hidden">
+    <div class="topbar">
+      <span class="pill">學員</span>
+      <span class="you">你好，<b id="lobby-name"></b></span>
+    </div>
+    <h1>已加入 ✓</h1>
+    <p class="sub">請等待主持人開始。畫面會自動更新，不用重新整理。</p>
+    <div class="big" id="lobby-count">0 人已加入</div>
+  </section>
+
+  <!-- ================= 學員：作答 ================= -->
+  <section id="screen-play" class="card hidden">
+    <div class="topbar">
+      <span class="pill" id="play-sec">章節</span>
+      <span class="you">分數 <b id="play-score">0</b></span>
+    </div>
+    <div class="timer" id="play-timer">25</div>
+    <div class="timerbar"><i id="play-bar"></i></div>
+    <div class="q" id="play-q">題目</div>
+    <div class="answers" id="play-answers"></div>
+    <div class="center muted" id="play-status" style="margin-top:14px"></div>
+  </section>
+
+  <!-- ================= 學員：本題結果 ================= -->
+  <section id="screen-reveal" class="card hidden">
+    <div class="topbar">
+      <span class="pill" id="rev-sec">章節</span>
+      <span class="you">分數 <b id="rev-score">0</b></span>
+    </div>
+    <div class="big" id="rev-result">—</div>
+    <div class="q" id="rev-q" style="font-size:1.1rem"></div>
+    <div class="answers" id="rev-answers"></div>
+    <div class="note" id="rev-note"></div>
+    <p class="center muted" style="margin-top:14px">等待主持人下一題…</p>
+  </section>
+
+  <!-- ================= 排行榜（學員 / 主持人共用） ================= -->
+  <section id="screen-board" class="card hidden">
+    <div class="topbar">
+      <span class="pill" id="board-title">即時排行榜</span>
+      <span class="you" id="board-sub"></span>
+    </div>
+    <h1 id="board-h">🏆 排行榜</h1>
+    <ol class="lb" id="board-list"></ol>
+    <div class="hostbar host-only hidden" id="board-hostbar"></div>
+  </section>
+
+  <!-- ================= 主持人：控場 ================= -->
+  <section id="screen-host" class="card hidden">
+    <div class="topbar">
+      <span class="pill">主持人</span>
+      <span class="you"><b id="host-players">0</b> 人在線</span>
+    </div>
+
+    <!-- 主持人：等待室（含 QR） -->
+    <div id="host-lobby">
+      <h1>讓學員加入</h1>
+      <p class="sub">請學員用手機掃描 QR Code，或開啟下方網址：</p>
+      <div class="center">
+        <div class="qr"><img id="qr-img" alt="QR" width="220" height="220"></div>
+        <div class="url" id="join-url"></div>
+      </div>
+      <ol class="lb" id="host-playerlist" style="margin-top:18px"></ol>
+      <button id="btn-start" class="btn-block">開始問答（共 <span id="qtotal">0</span> 題）</button>
+    </div>
+
+    <!-- 主持人：題目進行中 -->
+    <div id="host-live" class="hidden">
+      <span class="tag">第 <b id="host-qn">1</b> / <b id="host-qt">1</b> 題 · <span id="host-sec"></span></span>
+      <div class="timer" id="host-timer">25</div>
+      <div class="timerbar"><i id="host-bar"></i></div>
+      <div class="q" id="host-q"></div>
+      <div class="answers" id="host-answers"></div>
+      <div class="big" id="host-answered" style="font-size:1.1rem; color:var(--muted)">0 人已作答</div>
+      <div class="hostbar">
+        <button id="btn-reveal">公布答案</button>
+      </div>
+    </div>
+
+    <!-- 主持人：公布答案 -->
+    <div id="host-reveal" class="hidden">
+      <span class="tag">第 <b id="hr-qn">1</b> / <b id="hr-qt">1</b> 題 · 答案揭曉</span>
+      <div class="q" id="hr-q"></div>
+      <div class="answers" id="hr-answers"></div>
+      <div class="dist" id="hr-dist"></div>
+      <div class="note" id="hr-note"></div>
+      <div class="hostbar">
+        <button id="btn-showboard" class="btn-ghost">看排行榜</button>
+        <button id="btn-next">下一題 →</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    IWF TCRR 2025 · 教學用互動問答 · 資料來源：IWF TCRR 2025 與官方修訂附件（as of 05 Nov 2025）
+  </footer>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- 你的設定與題庫 -->
+<script src="firebase-config.js"></script>
+<script src="questions.js"></script>
+<script>
+/* =====================================================================
+ *  App 邏輯
+ * ===================================================================== */
+"use strict";
+
+// ---- 小工具 ----
+const $ = id => document.getElementById(id);
+const screens = ["join","hostlogin","lobby","play","reveal","board","host"];
+function show(name){ screens.forEach(s => $("screen-"+s).classList.toggle("hidden", s!==name)); }
+const LETTERS = ["A","B","C","D"];
+const ICONS = ["▲","◆","●","■"];
+
+// ---- 初始化 Firebase ----
+let db, gameRef;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  gameRef = db.ref("games/" + ROOM);
+} catch(e){
+  alert("Firebase 尚未設定完成，請先填好 firebase-config.js。\n\n" + e.message);
+}
+
+// ---- 伺服器時間校正 ----
+let serverOffset = 0;
+if (db) db.ref(".info/serverTimeOffset").on("value", s => serverOffset = s.val() || 0);
+const now = () => Date.now() + serverOffset;
+
+// ---- 身分 ----
+let me = { id: localStorage.getItem("tcrr_pid"), name: localStorage.getItem("tcrr_name") || "", isHost:false, score:0 };
+if (!me.id){ me.id = "p" + Math.random().toString(36).slice(2,9); localStorage.setItem("tcrr_pid", me.id); }
+
+// =====================================================================
+//  進入流程
+// =====================================================================
+$("nick").value = me.name;
+$("btn-join").onclick = joinAsPlayer;
+$("nick").addEventListener("keydown", e => { if(e.key==="Enter") joinAsPlayer(); });
+
+function joinAsPlayer(){
+  const name = $("nick").value.trim();
+  if(!name){ $("join-err").textContent = "請先輸入暱稱"; return; }
+  if(!db){ $("join-err").textContent = "Firebase 尚未設定，請通知主持人"; return; }
+  me.name = name; me.isHost = false;
+  localStorage.setItem("tcrr_name", name);
+  const pRef = gameRef.child("players/"+me.id);
+  pRef.child("name").set(name);
+  pRef.child("score").transaction(v => v==null ? 0 : v);  // 已有分數則保留
+  $("lobby-name").textContent = name;
+  startPlayer();
+}
+
+// 主持人入口
+$("to-host").onclick = e => { e.preventDefault(); show("hostlogin"); };
+$("back-join").onclick = e => { e.preventDefault(); show("join"); };
+$("btn-hostlogin").onclick = hostLogin;
+$("pin").addEventListener("keydown", e => { if(e.key==="Enter") hostLogin(); });
+function hostLogin(){
+  if($("pin").value !== String(HOST_PIN)){ $("host-err").textContent = "PIN 碼錯誤"; return; }
+  me.isHost = true;
+  startHost();
+}
+if(location.hash === "#host") show("hostlogin");
+
+// =====================================================================
+//  共用：監聽遊戲狀態
+// =====================================================================
+let state = {};         // meta
+let lastQ = -1;
+let answeredThis = false;
+
+function watchMeta(handler){ gameRef.child("meta").on("value", s => { state = s.val() || {}; handler(); }); }
+
+// =====================================================================
+//  學員端
+// =====================================================================
+function startPlayer(){
+  // 我的分數
+  gameRef.child("players/"+me.id+"/score").on("value", s => {
+    me.score = s.val() || 0;
+    $("play-score").textContent = me.score;
+    $("rev-score").textContent = me.score;
+  });
+  // 在線人數（等待室）
+  gameRef.child("players").on("value", s => {
+    const n = countOnline(s.val());
+    $("lobby-count").textContent = n + " 人已加入";
+  });
+  watchMeta(renderPlayer);
+}
+
+function renderPlayer(){
+  const st = state.state || "lobby";
+  if(st === "lobby"){ show("lobby"); return; }
+  if(st === "live"){ renderPlayQuestion(); return; }
+  if(st === "reveal"){ renderPlayReveal(); return; }
+  if(st === "board" || st === "final"){ renderBoard(false, st==="final"); return; }
+}
+
+let timerHandle = null;
+function runTimer(elBig, elBar, onEnd){
+  clearInterval(timerHandle);
+  const dur = (state.duration || QUESTION_SECONDS) * 1000;
+  const start = state.startAt || now();
+  function tick(){
+    const left = Math.max(0, dur - (now() - start));
+    const secs = Math.ceil(left/1000);
+    if(elBig) elBig.textContent = secs;
+    if(elBar) elBar.style.width = (left/dur*100) + "%";
+    if(left <= 0){ clearInterval(timerHandle); if(onEnd) onEnd(); }
+  }
+  tick(); timerHandle = setInterval(tick, 200);
+}
+
+function renderPlayQuestion(){
+  const qi = state.q ?? 0;
+  const Q = QUESTIONS[qi];
+  if(!Q) return;
+  if(qi !== lastQ){ lastQ = qi; answeredThis = false; }
+  show("play");
+  $("play-sec").textContent = Q.sec;
+  $("play-q").textContent = Q.q;
+  $("play-status").textContent = "";
+  const box = $("play-answers"); box.innerHTML = "";
+  Q.options.forEach((opt,i) => {
+    const b = document.createElement("button");
+    b.className = "ans " + LETTERS[i];
+    b.innerHTML = `<span class="ic">${ICONS[i]}</span><span>${opt}</span>`;
+    b.onclick = () => submitAnswer(qi, i, Q, b);
+    box.appendChild(b);
+  });
+  // 若已作答（例如重新整理）→ 鎖定
+  gameRef.child("answers/"+qi+"/"+me.id).once("value", s => {
+    if(s.exists()){ lockAnswers(s.val().choice); }
+  });
+  runTimer($("play-timer"), $("play-bar"), () => {
+    if(!answeredThis){ $("play-status").textContent = "時間到！"; lockAnswers(-1); }
+  });
+}
+
+function submitAnswer(qi, choice, Q, btnEl){
+  if(answeredThis) return;
+  answeredThis = true;
+  const dur = (state.duration || QUESTION_SECONDS) * 1000;
+  const start = state.startAt || now();
+  const dt = Math.max(0, now() - start);
+  const correct = (choice === Q.answer);
+  // Kahoot 式計分：答對 base 500 + 最多 500 的速度分；答錯 0
+  let gained = 0;
+  if(correct){ gained = Math.round(500 + 500 * Math.max(0, 1 - dt/dur)); }
+  gameRef.child("answers/"+qi+"/"+me.id).set({ choice, dt, correct, gained });
+  if(gained > 0) gameRef.child("players/"+me.id+"/score").transaction(v => (v||0) + gained);
+  lockAnswers(choice);
+  $("play-status").textContent = "已送出！等待其他人…";
+}
+
+function lockAnswers(choice){
+  answeredThis = true;
+  [...$("play-answers").children].forEach((b,i) => {
+    b.disabled = true;
+    if(i === choice) b.classList.add("pick");
+    else b.classList.add("dim");
+  });
+}
+
+function renderPlayReveal(){
+  const qi = state.q ?? 0;
+  const Q = QUESTIONS[qi];
+  if(!Q) return;
+  show("reveal");
+  $("rev-sec").textContent = Q.sec;
+  $("rev-q").textContent = Q.q;
+  $("rev-note").textContent = Q.note || "";
+  const box = $("rev-answers"); box.innerHTML = "";
+  Q.options.forEach((opt,i) => {
+    const d = document.createElement("div");
+    d.className = "ans " + LETTERS[i];
+    if(i === Q.answer) d.classList.add("correct"); else d.classList.add("dim");
+    d.innerHTML = `<span class="ic">${ICONS[i]}</span><span>${opt}</span>`;
+    box.appendChild(d);
+  });
+  gameRef.child("answers/"+qi+"/"+me.id).once("value", s => {
+    const a = s.val();
+    if(a && a.correct){ $("rev-result").innerHTML = `✅ 答對了！ <span style="color:var(--good)">+${a.gained}</span>`; }
+    else if(a){ $("rev-result").innerHTML = `❌ 答錯了`; }
+    else { $("rev-result").innerHTML = `⏱️ 未作答`; }
+  });
+}
+
+// =====================================================================
+//  排行榜（學員與主持人共用顯示）
+// =====================================================================
+function renderBoard(isHost, isFinal){
+  show("board");
+  $("board-h").textContent = isFinal ? "🏆 最終成績" : "🏆 即時排行榜";
+  $("board-title").textContent = isFinal ? "完賽" : "排行榜";
+  gameRef.child("players").on("value", s => {
+    const players = s.val() || {};
+    const arr = Object.entries(players)
+      .map(([id,p]) => ({id, name:p.name||"(無名)", score:p.score||0}))
+      .sort((a,b) => b.score - a.score);
+    const list = $("board-list"); list.innerHTML = "";
+    arr.slice(0, isFinal ? 99 : 8).forEach((p,i) => {
+      const li = document.createElement("li");
+      if(i===0) li.classList.add("top1");
+      if(p.id === me.id) li.classList.add("me");
+      const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
+      li.innerHTML = `<span class="rk">${medal}</span><span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span>`;
+      list.appendChild(li);
+    });
+    if(arr.length===0) list.innerHTML = '<li class="muted">尚無資料</li>';
+  });
+}
+
+// =====================================================================
+//  主持人端
+// =====================================================================
+function startHost(){
+  $("qtotal").textContent = QUESTIONS.length;
+  $("host-qt").textContent = QUESTIONS.length;
+  $("hr-qt").textContent = QUESTIONS.length;
+  // QR + 網址
+  const joinUrl = location.origin + location.pathname;
+  $("join-url").textContent = joinUrl;
+  $("qr-img").src = "https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&data=" + encodeURIComponent(joinUrl);
+  // 玩家清單 / 人數
+  gameRef.child("players").on("value", s => {
+    const players = s.val() || {};
+    const arr = Object.entries(players).map(([id,p]) => ({id, ...p}));
+    $("host-players").textContent = countOnline(players);
+    const ul = $("host-playerlist"); ul.innerHTML = "";
+    arr.sort((a,b)=> (b.score||0)-(a.score||0)).forEach(p => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="rk">•</span><span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score||0}</span>`;
+      ul.appendChild(li);
+    });
+  });
+  // 監聽狀態以渲染主持畫面
+  watchMeta(renderHost);
+  // 按鈕
+  $("btn-start").onclick = () => goLive(0);
+  $("btn-reveal").onclick = doReveal;
+  $("btn-next").onclick = () => {
+    const next = (state.q ?? 0) + 1;
+    if(next >= QUESTIONS.length) gameRef.child("meta").update({ state:"final" });
+    else goLive(next);
+  };
+  $("btn-showboard").onclick = () => gameRef.child("meta").update({ state:"board" });
+  // 若尚無 meta，建立 lobby
+  gameRef.child("meta").once("value", s => { if(!s.exists()) gameRef.child("meta").set({ state:"lobby", q:-1 }); });
+}
+
+function goLive(qi){
+  gameRef.child("meta").set({
+    state:"live", q:qi,
+    startAt: firebase.database.ServerValue.TIMESTAMP,
+    duration: QUESTION_SECONDS
+  });
+}
+function doReveal(){ gameRef.child("meta").update({ state:"reveal" }); }
+
+function renderHost(){
+  if(!me.isHost) return;
+  show("host");
+  const st = state.state || "lobby";
+  $("host-lobby").classList.toggle("hidden", st!=="lobby");
+  $("host-live").classList.toggle("hidden", st!=="live");
+  $("host-reveal").classList.toggle("hidden", st!=="reveal");
+  // board/final 時主持人也看排行榜
+  if(st==="board" || st==="final"){ renderHostBoard(st==="final"); return; }
+
+  const qi = state.q ?? 0;
+  const Q = QUESTIONS[qi];
+  if(st==="live" && Q){
+    $("host-qn").textContent = qi+1; $("host-sec").textContent = Q.sec;
+    $("host-q").textContent = Q.q;
+    fillStaticAnswers($("host-answers"), Q, false);
+    runTimer($("host-timer"), $("host-bar"), null);
+    gameRef.child("answers/"+qi).on("value", s => {
+      const n = s.numChildren();
+      $("host-answered").textContent = n + " 人已作答";
+    });
+  }
+  if(st==="reveal" && Q){
+    $("hr-qn").textContent = qi+1; $("hr-q").textContent = Q.q;
+    $("hr-note").textContent = Q.note || "";
+    fillStaticAnswers($("hr-answers"), Q, true);
+    // 作答分佈
+    gameRef.child("answers/"+qi).once("value", s => {
+      const counts = [0,0,0,0]; let total=0;
+      s.forEach(c => { const ch = c.val().choice; if(ch>=0&&ch<4){counts[ch]++; total++;} });
+      const dist = $("hr-dist"); dist.innerHTML = "";
+      counts.forEach((c,i) => {
+        const pct = total? (c/total*100):0;
+        const d = document.createElement("div"); d.className = LETTERS[i];
+        d.innerHTML = `<div class="bar"><i style="height:${Math.max(4,pct)}%"></i></div><div>${ICONS[i]} ${c}</div>`;
+        dist.appendChild(d);
+      });
+    });
+  }
+}
+
+function renderHostBoard(isFinal){
+  show("board");
+  $("board-h").textContent = isFinal ? "🏆 最終成績" : "🏆 即時排行榜";
+  $("board-hostbar").classList.remove("hidden");
+  gameRef.child("players").on("value", s => {
+    const arr = Object.entries(s.val()||{}).map(([id,p])=>({id,name:p.name,score:p.score||0}))
+      .sort((a,b)=>b.score-a.score);
+    const list = $("board-list"); list.innerHTML="";
+    arr.forEach((p,i)=>{
+      const li=document.createElement("li"); if(i===0)li.classList.add("top1");
+      const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
+      li.innerHTML=`<span class="rk">${medal}</span><span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score}</span>`;
+      list.appendChild(li);
+    });
+  });
+  const bar = $("board-hostbar"); bar.innerHTML="";
+  if(!isFinal){
+    const b=document.createElement("button"); b.textContent="繼續下一題 →";
+    b.onclick=()=>{ const next=(state.q??0)+1;
+      if(next>=QUESTIONS.length) gameRef.child("meta").update({state:"final"});
+      else goLive(next); };
+    bar.appendChild(b);
+  } else {
+    const b=document.createElement("button"); b.className="btn-ghost"; b.textContent="重置（清除所有人分數，重新開始）";
+    b.onclick=resetGame; bar.appendChild(b);
+  }
+}
+
+function resetGame(){
+  if(!confirm("確定要清除所有學員與分數、回到等待室嗎？")) return;
+  gameRef.child("answers").remove();
+  gameRef.child("players").remove();
+  gameRef.child("meta").set({ state:"lobby", q:-1 });
+}
+
+// ---- 共用：靜態渲染選項（主持人用，含正解高亮） ----
+function fillStaticAnswers(box, Q, reveal){
+  box.innerHTML = "";
+  Q.options.forEach((opt,i) => {
+    const d = document.createElement("div");
+    d.className = "ans " + LETTERS[i];
+    if(reveal){ if(i===Q.answer) d.classList.add("correct"); else d.classList.add("dim"); }
+    d.innerHTML = `<span class="ic">${ICONS[i]}</span><span>${opt}</span>`;
+    box.appendChild(d);
+  });
+}
+
+// ---- 小工具 ----
+function countOnline(players){
+  if(!players) return 0;
+  return Object.values(players).length;
+}
+function esc(s){ return String(s).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c])); }
+</script>
+</body>
+</html>
