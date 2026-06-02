@@ -85,17 +85,53 @@
   .topbar .you b{color:var(--ink)}
   a.hostlink{color:var(--muted); font-size:.82rem; text-decoration:none; border-bottom:1px dotted var(--muted)}
   footer{color:#6b73a0; font-size:.78rem; margin-top:22px; text-align:center}
+  /* 代表人物選擇（國旗 + 明星名） */
+  .avatars{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px}
+  .avatars button{display:flex; flex-direction:column; align-items:center; gap:3px;
+    padding:9px 2px; background:#11163077; color:#fff; border:1px solid var(--line); border-radius:12px}
+  .avatars button .f{font-size:1.7rem; line-height:1}
+  .avatars button .n{font-size:.7rem; color:var(--muted); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; max-width:100%}
+  .avatars button.sel{outline:3px solid var(--accent); background:#2b3566}
+  .avatars button.sel .n{color:#fff}
+  .avgroup-label{font-size:.82rem; color:var(--accent); font-weight:700; margin:14px 0 4px}
+  .avatar-box{max-height:300px; overflow-y:auto; padding-right:4px; margin-top:4px;
+    border:1px solid var(--line); border-radius:12px; padding:6px 8px; background:#0d112499}
+  /* 靜音鈕 */
+  .mute{position:fixed; top:12px; right:12px; z-index:50; width:44px; height:44px;
+    border-radius:50%; background:#2b3566; color:#fff; border:1px solid var(--line);
+    font-size:1.1rem; padding:0; box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  /* 作答比例（含正解高亮、百分比） */
+  .dist .correct i{background:var(--good) !important}
+  .dist .correct{outline:2px solid var(--good)}
+  .dist .pct{font-weight:800; font-size:1.05rem}
+  .dist .cnt{font-size:.72rem; color:var(--muted)}
+  .dist > div{transition:outline .2s}
+  .name-av{margin-right:6px}
+  /* 頭像浮動動畫 */
+  @keyframes avtBob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-9%) rotate(1.5deg)}}
+  /* 代表人物選擇器（角色磚） */
+  .charpick{display:grid; grid-template-columns:repeat(5,1fr); gap:8px}
+  .charpick button{display:flex; align-items:center; justify-content:center;
+    padding:6px; background:#11163077; border:1px solid var(--line); border-radius:12px}
+  .charpick button.sel{outline:3px solid var(--accent); background:#2b3566}
+  /* 排行榜 / 名單頭像 */
+  .lb .av{flex:0 0 auto; width:38px; height:38px; display:inline-flex}
+  .you .av img,.you .av{vertical-align:middle}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <button id="btn-mute" class="mute" title="音效開關">🔊</button>
 
   <!-- ================= 進入畫面 ================= -->
   <section id="screen-join" class="card">
     <h1>🏋️ TCRR 2025 互動問答</h1>
-    <p class="sub">輸入暱稱即可加入，準備好搶答！</p>
+    <p class="sub">輸入暱稱、選一個代表人物，準備搶答！</p>
     <label for="nick">你的暱稱</label>
     <input id="nick" type="text" maxlength="16" placeholder="例如：小明教練" autocomplete="off">
+    <label>選一個代表人物</label>
+    <div class="avatar-box"><div id="char-pick"></div></div>
     <button id="btn-join" class="btn-block">加入</button>
     <div id="join-err" class="err"></div>
     <p style="margin-top:20px"><a href="#host" class="hostlink" id="to-host">我是主持人 →</a></p>
@@ -145,6 +181,7 @@
     <div class="big" id="rev-result">—</div>
     <div class="q" id="rev-q" style="font-size:1.1rem"></div>
     <div class="answers" id="rev-answers"></div>
+    <div class="dist" id="rev-dist"></div>
     <div class="note" id="rev-note"></div>
     <p class="center muted" style="margin-top:14px">等待主持人下一題…</p>
   </section>
@@ -217,6 +254,7 @@
 <!-- 你的設定與題庫 -->
 <script src="firebase-config.js"></script>
 <script src="questions.js"></script>
+<script src="characters.js"></script>
 <script>
 /* =====================================================================
  *  App 邏輯
@@ -229,6 +267,33 @@ const screens = ["join","hostlogin","lobby","play","reveal","board","host"];
 function show(name){ screens.forEach(s => $("screen-"+s).classList.toggle("hidden", s!==name)); }
 const LETTERS = ["A","B","C","D"];
 const ICONS = ["▲","◆","●","■"];
+
+// ---- 音效（Web Audio 合成，無外部音檔）----
+const Sound = (function(){
+  let ctx=null, muted = localStorage.getItem("tcrr_muted")==="1";
+  function ac(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ctx; }
+  function tone(freq,dur,type,vol,when){
+    if(muted) return; const c=ac(); if(!c) return;
+    const t=c.currentTime+(when||0);
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||"sine"; o.frequency.value=freq;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||0.2,t+0.012);
+    g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.02);
+  }
+  return {
+    unlock(){ const c=ac(); if(c&&c.state==="suspended") c.resume(); },
+    muted(){ return muted; },
+    toggle(){ muted=!muted; localStorage.setItem("tcrr_muted", muted?"1":"0"); if(!muted) this.unlock(); return muted; },
+    click(){ tone(330,0.09,"square",0.16); tone(620,0.08,"square",0.12,0.02); },
+    start(){ tone(440,0.12,"triangle",0.18); tone(660,0.16,"triangle",0.16,0.09); },
+    tick(){ tone(900,0.05,"square",0.10); },
+    correct(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.2,"sine",0.2,i*0.085)); },
+    wrong(){ tone(207,0.32,"sawtooth",0.16); tone(155,0.36,"sawtooth",0.14,0.05); },
+    reveal(){ tone(680,0.1,"sine",0.14); tone(880,0.12,"sine",0.12,0.06); }
+  };
+})();
+let lastSoundQ = -1;   // 確保答對/答錯每題只播一次
 
 // ---- 初始化 Firebase ----
 let db, gameRef;
@@ -248,6 +313,35 @@ const now = () => Date.now() + serverOffset;
 // ---- 身分 ----
 let me = { id: localStorage.getItem("tcrr_pid"), name: localStorage.getItem("tcrr_name") || "", isHost:false, score:0 };
 if (!me.id){ me.id = "p" + Math.random().toString(36).slice(2,9); localStorage.setItem("tcrr_pid", me.id); }
+me.avatar = localStorage.getItem("tcrr_avatar") || "";
+if(!me.avatar && typeof CHARACTERS !== "undefined" && CHARACTERS[0]) me.avatar = CHARACTERS[0].id;
+
+// ---- 靜音鈕 ----
+$("btn-mute").textContent = Sound.muted() ? "🔇" : "🔊";
+$("btn-mute").onclick = () => { const m = Sound.toggle(); $("btn-mute").textContent = m ? "🔇" : "🔊"; };
+
+// ---- 代表人物選擇器 ----
+function renderCharPick(){
+  const box = $("char-pick"); if(!box || typeof CHARACTERS==="undefined") return;
+  // 全部混在一起、隨機打亂（不分類）
+  const list = CHARACTERS.slice();
+  for(let i=list.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [list[i],list[j]]=[list[j],list[i]]; }
+  box.innerHTML = "";
+  const g = document.createElement("div"); g.className="charpick";
+  list.forEach(c => {
+    const b = document.createElement("button"); b.type="button"; b.dataset.id=c.id; b.title=c.name;
+    b.innerHTML = avatarImg(c,56);
+    if(c.id===me.avatar) b.classList.add("sel");
+    b.onclick = () => {
+      me.avatar=c.id; localStorage.setItem("tcrr_avatar",c.id);
+      box.querySelectorAll(".charpick button").forEach(x => x.classList.toggle("sel", x.dataset.id===c.id));
+      Sound.unlock(); Sound.click();
+    };
+    g.appendChild(b);
+  });
+  box.appendChild(g);
+}
+renderCharPick();
 
 // =====================================================================
 //  進入流程
@@ -262,8 +356,10 @@ function joinAsPlayer(){
   if(!db){ $("join-err").textContent = "Firebase 尚未設定，請通知主持人"; return; }
   me.name = name; me.isHost = false;
   localStorage.setItem("tcrr_name", name);
+  Sound.unlock();
   const pRef = gameRef.child("players/"+me.id);
   pRef.child("name").set(name);
+  pRef.child("avatar").set(me.avatar || "");
   pRef.child("score").transaction(v => v==null ? 0 : v);  // 已有分數則保留
   $("lobby-name").textContent = name;
   startPlayer();
@@ -277,7 +373,26 @@ $("pin").addEventListener("keydown", e => { if(e.key==="Enter") hostLogin(); });
 function hostLogin(){
   if($("pin").value !== String(HOST_PIN)){ $("host-err").textContent = "PIN 碼錯誤"; return; }
   me.isHost = true;
+  Sound.unlock();
   startHost();
+}
+
+// ---- 共用：作答百分比長條圖 ----
+function renderDist(container, qi, Q){
+  if(!container) return;
+  gameRef.child("answers/"+qi).once("value", s => {
+    const counts=[0,0,0,0]; let total=0;
+    s.forEach(c => { const ch=c.val().choice; if(ch>=0&&ch<4){counts[ch]++; total++;} });
+    container.innerHTML = "";
+    counts.forEach((cnt,i) => {
+      const pct = total ? Math.round(cnt/total*100) : 0;
+      const d = document.createElement("div");
+      d.className = LETTERS[i] + (i===Q.answer ? " correct" : "");
+      d.innerHTML = `<div class="bar"><i style="height:${Math.max(4,pct)}%"></i></div>`+
+                    `<div class="pct">${pct}%</div><div class="cnt">${ICONS[i]} ${cnt}人</div>`;
+      container.appendChild(d);
+    });
+  });
 }
 if(location.hash === "#host") show("hostlogin");
 
@@ -321,11 +436,13 @@ function runTimer(elBig, elBar, onEnd){
   clearInterval(timerHandle);
   const dur = (state.duration || QUESTION_SECONDS) * 1000;
   const start = state.startAt || now();
+  let lastTickSec = -1;
   function tick(){
     const left = Math.max(0, dur - (now() - start));
     const secs = Math.ceil(left/1000);
     if(elBig) elBig.textContent = secs;
     if(elBar) elBar.style.width = (left/dur*100) + "%";
+    if(secs <= 5 && secs > 0 && secs !== lastTickSec){ lastTickSec = secs; Sound.tick(); }
     if(left <= 0){ clearInterval(timerHandle); if(onEnd) onEnd(); }
   }
   tick(); timerHandle = setInterval(tick, 200);
@@ -335,7 +452,7 @@ function renderPlayQuestion(){
   const qi = state.q ?? 0;
   const Q = QUESTIONS[qi];
   if(!Q) return;
-  if(qi !== lastQ){ lastQ = qi; answeredThis = false; }
+  if(qi !== lastQ){ lastQ = qi; answeredThis = false; Sound.start(); }
   show("play");
   $("play-sec").textContent = Q.sec;
   $("play-q").textContent = Q.q;
@@ -360,6 +477,7 @@ function renderPlayQuestion(){
 function submitAnswer(qi, choice, Q, btnEl){
   if(answeredThis) return;
   answeredThis = true;
+  Sound.click();
   const dur = (state.duration || QUESTION_SECONDS) * 1000;
   const start = state.startAt || now();
   const dt = Math.max(0, now() - start);
@@ -398,11 +516,13 @@ function renderPlayReveal(){
     d.innerHTML = `<span class="ic">${ICONS[i]}</span><span>${opt}</span>`;
     box.appendChild(d);
   });
+  renderDist($("rev-dist"), qi, Q);
   gameRef.child("answers/"+qi+"/"+me.id).once("value", s => {
     const a = s.val();
-    if(a && a.correct){ $("rev-result").innerHTML = `✅ 答對了！ <span style="color:var(--good)">+${a.gained}</span>`; }
-    else if(a){ $("rev-result").innerHTML = `❌ 答錯了`; }
-    else { $("rev-result").innerHTML = `⏱️ 未作答`; }
+    const playSnd = (qi !== lastSoundQ); if(playSnd) lastSoundQ = qi;
+    if(a && a.correct){ $("rev-result").innerHTML = `✅ 答對了！ <span style="color:var(--good)">+${a.gained}</span>`; if(playSnd) Sound.correct(); }
+    else if(a){ $("rev-result").innerHTML = `❌ 答錯了`; if(playSnd) Sound.wrong(); }
+    else { $("rev-result").innerHTML = `⏱️ 未作答`; if(playSnd) Sound.wrong(); }
   });
 }
 
@@ -416,7 +536,7 @@ function renderBoard(isHost, isFinal){
   gameRef.child("players").on("value", s => {
     const players = s.val() || {};
     const arr = Object.entries(players)
-      .map(([id,p]) => ({id, name:p.name||"(無名)", score:p.score||0}))
+      .map(([id,p]) => ({id, name:p.name||"(無名)", score:p.score||0, avatar:p.avatar}))
       .sort((a,b) => b.score - a.score);
     const list = $("board-list"); list.innerHTML = "";
     arr.slice(0, isFinal ? 99 : 8).forEach((p,i) => {
@@ -424,7 +544,8 @@ function renderBoard(isHost, isFinal){
       if(i===0) li.classList.add("top1");
       if(p.id === me.id) li.classList.add("me");
       const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
-      li.innerHTML = `<span class="rk">${medal}</span><span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span>`;
+      li.innerHTML = `<span class="rk">${medal}</span><span class="av">${avatarImg(getChar(p.avatar),38)}</span>`+
+        `<span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span>`;
       list.appendChild(li);
     });
     if(arr.length===0) list.innerHTML = '<li class="muted">尚無資料</li>';
@@ -450,7 +571,8 @@ function startHost(){
     const ul = $("host-playerlist"); ul.innerHTML = "";
     arr.sort((a,b)=> (b.score||0)-(a.score||0)).forEach(p => {
       const li = document.createElement("li");
-      li.innerHTML = `<span class="rk">•</span><span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score||0}</span>`;
+      li.innerHTML = `<span class="av">${avatarImg(getChar(p.avatar),34)}</span>`+
+        `<span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score||0}</span>`;
       ul.appendChild(li);
     });
   });
@@ -470,13 +592,14 @@ function startHost(){
 }
 
 function goLive(qi){
+  Sound.click();
   gameRef.child("meta").set({
     state:"live", q:qi,
     startAt: firebase.database.ServerValue.TIMESTAMP,
     duration: QUESTION_SECONDS
   });
 }
-function doReveal(){ gameRef.child("meta").update({ state:"reveal" }); }
+function doReveal(){ Sound.reveal(); gameRef.child("meta").update({ state:"reveal" }); }
 
 function renderHost(){
   if(!me.isHost) return;
@@ -504,18 +627,7 @@ function renderHost(){
     $("hr-qn").textContent = qi+1; $("hr-q").textContent = Q.q;
     $("hr-note").textContent = Q.note || "";
     fillStaticAnswers($("hr-answers"), Q, true);
-    // 作答分佈
-    gameRef.child("answers/"+qi).once("value", s => {
-      const counts = [0,0,0,0]; let total=0;
-      s.forEach(c => { const ch = c.val().choice; if(ch>=0&&ch<4){counts[ch]++; total++;} });
-      const dist = $("hr-dist"); dist.innerHTML = "";
-      counts.forEach((c,i) => {
-        const pct = total? (c/total*100):0;
-        const d = document.createElement("div"); d.className = LETTERS[i];
-        d.innerHTML = `<div class="bar"><i style="height:${Math.max(4,pct)}%"></i></div><div>${ICONS[i]} ${c}</div>`;
-        dist.appendChild(d);
-      });
-    });
+    renderDist($("hr-dist"), qi, Q);
   }
 }
 
@@ -524,13 +636,14 @@ function renderHostBoard(isFinal){
   $("board-h").textContent = isFinal ? "🏆 最終成績" : "🏆 即時排行榜";
   $("board-hostbar").classList.remove("hidden");
   gameRef.child("players").on("value", s => {
-    const arr = Object.entries(s.val()||{}).map(([id,p])=>({id,name:p.name,score:p.score||0}))
+    const arr = Object.entries(s.val()||{}).map(([id,p])=>({id,name:p.name,score:p.score||0,avatar:p.avatar}))
       .sort((a,b)=>b.score-a.score);
     const list = $("board-list"); list.innerHTML="";
     arr.forEach((p,i)=>{
       const li=document.createElement("li"); if(i===0)li.classList.add("top1");
       const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
-      li.innerHTML=`<span class="rk">${medal}</span><span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score}</span>`;
+      li.innerHTML=`<span class="rk">${medal}</span><span class="av">${avatarImg(getChar(p.avatar),38)}</span>`+
+        `<span class="nm">${esc(p.name||"(無名)")}</span><span class="sc">${p.score}</span>`;
       list.appendChild(li);
     });
   });
