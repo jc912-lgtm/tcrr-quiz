@@ -95,12 +95,8 @@
   .avatars button.sel{outline:3px solid var(--accent); background:#2b3566}
   .avatars button.sel .n{color:#fff}
   .avgroup-label{font-size:.82rem; color:var(--accent); font-weight:700; margin:14px 0 4px}
-  .avatar-box{max-height:300px; overflow-y:auto; padding-right:4px; margin-top:4px;
-    border:1px solid var(--line); border-radius:12px; padding:6px 8px; background:#0d112499}
-  /* 靜音鈕 */
-  .mute{position:fixed; top:12px; right:12px; z-index:50; width:44px; height:44px;
-    border-radius:50%; background:#2b3566; color:#fff; border:1px solid var(--line);
-    font-size:1.1rem; padding:0; box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  .avatar-box{max-height:380px; overflow-y:auto; padding-right:4px; margin-top:4px;
+    border:1px solid var(--line); border-radius:12px; padding:8px; background:#0d112499}
   /* 作答比例（含正解高亮、百分比） */
   .dist .correct i{background:var(--good) !important}
   .dist .correct{outline:2px solid var(--good)}
@@ -111,10 +107,20 @@
   /* 頭像浮動動畫 */
   @keyframes avtBob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-9%) rotate(1.5deg)}}
   /* 代表人物選擇器（角色磚） */
-  .charpick{display:grid; grid-template-columns:repeat(5,1fr); gap:8px}
+  .charpick{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
   .charpick button{display:flex; align-items:center; justify-content:center;
-    padding:6px; background:#11163077; border:1px solid var(--line); border-radius:12px}
+    padding:5px; background:#11163066; border:1px solid var(--line); border-radius:14px}
   .charpick button.sel{outline:3px solid var(--accent); background:#2b3566}
+  .charpick img{width:74px; height:74px}
+  @media(max-width:380px){ .charpick img{width:66px;height:66px} }
+  /* 代表人物：左右切換大圖 */
+  .carousel{display:flex; align-items:center; gap:10px; justify-content:center; margin-top:6px}
+  .cstage{flex:1; min-height:172px; display:flex; align-items:center; justify-content:center;
+    background:#0d112466; border:1px solid var(--line); border-radius:16px; touch-action:pan-y; overflow:hidden}
+  .cstage img{width:160px; height:160px}
+  .cnav{width:48px; height:48px; flex:0 0 auto; border-radius:50%; padding:0;
+    background:#2b3566; color:#fff; border:1px solid var(--line); font-size:1.7rem; line-height:1}
+  .cnav:active{background:var(--accent); color:#1a1300}
   /* 排行榜 / 名單頭像 */
   .lb .av{flex:0 0 auto; width:38px; height:38px; display:inline-flex}
   .you .av img,.you .av{vertical-align:middle}
@@ -122,7 +128,6 @@
 </head>
 <body>
 <div class="wrap">
-  <button id="btn-mute" class="mute" title="音效開關">🔊</button>
 
   <!-- ================= 進入畫面 ================= -->
   <section id="screen-join" class="card">
@@ -131,7 +136,7 @@
     <label for="nick">你的暱稱</label>
     <input id="nick" type="text" maxlength="16" placeholder="例如：小明教練" autocomplete="off">
     <label>選一個代表人物</label>
-    <div class="avatar-box"><div id="char-pick"></div></div>
+    <div class="avatar-box"><div class="charpick" id="char-pick"></div></div>
     <button id="btn-join" class="btn-block">加入</button>
     <div id="join-err" class="err"></div>
     <p style="margin-top:20px"><a href="#host" class="hostlink" id="to-host">我是主持人 →</a></p>
@@ -268,33 +273,6 @@ function show(name){ screens.forEach(s => $("screen-"+s).classList.toggle("hidde
 const LETTERS = ["A","B","C","D"];
 const ICONS = ["▲","◆","●","■"];
 
-// ---- 音效（Web Audio 合成，無外部音檔）----
-const Sound = (function(){
-  let ctx=null, muted = localStorage.getItem("tcrr_muted")==="1";
-  function ac(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return ctx; }
-  function tone(freq,dur,type,vol,when){
-    if(muted) return; const c=ac(); if(!c) return;
-    const t=c.currentTime+(when||0);
-    const o=c.createOscillator(), g=c.createGain();
-    o.type=type||"sine"; o.frequency.value=freq;
-    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol||0.2,t+0.012);
-    g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.02);
-  }
-  return {
-    unlock(){ const c=ac(); if(c&&c.state==="suspended") c.resume(); },
-    muted(){ return muted; },
-    toggle(){ muted=!muted; localStorage.setItem("tcrr_muted", muted?"1":"0"); if(!muted) this.unlock(); return muted; },
-    click(){ tone(330,0.09,"square",0.16); tone(620,0.08,"square",0.12,0.02); },
-    start(){ tone(440,0.12,"triangle",0.18); tone(660,0.16,"triangle",0.16,0.09); },
-    tick(){ tone(900,0.05,"square",0.10); },
-    correct(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.2,"sine",0.2,i*0.085)); },
-    wrong(){ tone(207,0.32,"sawtooth",0.16); tone(155,0.36,"sawtooth",0.14,0.05); },
-    reveal(){ tone(680,0.1,"sine",0.14); tone(880,0.12,"sine",0.12,0.06); }
-  };
-})();
-let lastSoundQ = -1;   // 確保答對/答錯每題只播一次
-
 // ---- 初始化 Firebase ----
 let db, gameRef;
 try {
@@ -316,30 +294,23 @@ if (!me.id){ me.id = "p" + Math.random().toString(36).slice(2,9); localStorage.s
 me.avatar = localStorage.getItem("tcrr_avatar") || "";
 if(!me.avatar && typeof CHARACTERS !== "undefined" && CHARACTERS[0]) me.avatar = CHARACTERS[0].id;
 
-// ---- 靜音鈕 ----
-$("btn-mute").textContent = Sound.muted() ? "🔇" : "🔊";
-$("btn-mute").onclick = () => { const m = Sound.toggle(); $("btn-mute").textContent = m ? "🔇" : "🔊"; };
-
 // ---- 代表人物選擇器 ----
+// ---- 代表人物：格子牆挑選 ----
 function renderCharPick(){
-  const box = $("char-pick"); if(!box || typeof CHARACTERS==="undefined") return;
-  // 全部混在一起、隨機打亂（不分類）
-  const list = CHARACTERS.slice();
-  for(let i=list.length-1; i>0; i--){ const j=Math.floor(Math.random()*(i+1)); [list[i],list[j]]=[list[j],list[i]]; }
+  const box = $("char-pick"); if(!box || typeof CHARACTERS==="undefined" || !CHARACTERS.length) return;
+  if(!CHARACTERS.find(c => c.id === me.avatar)) me.avatar = CHARACTERS[0].id;
+  localStorage.setItem("tcrr_avatar", me.avatar);
   box.innerHTML = "";
-  const g = document.createElement("div"); g.className="charpick";
-  list.forEach(c => {
-    const b = document.createElement("button"); b.type="button"; b.dataset.id=c.id; b.title=c.name;
-    b.innerHTML = avatarImg(c,56);
+  CHARACTERS.forEach(c => {
+    const b = document.createElement("button"); b.type="button"; b.dataset.id=c.id;
+    b.innerHTML = avatarImg(c, 74);
     if(c.id===me.avatar) b.classList.add("sel");
     b.onclick = () => {
       me.avatar=c.id; localStorage.setItem("tcrr_avatar",c.id);
-      box.querySelectorAll(".charpick button").forEach(x => x.classList.toggle("sel", x.dataset.id===c.id));
-      Sound.unlock(); Sound.click();
+      box.querySelectorAll("button").forEach(x => x.classList.toggle("sel", x.dataset.id===c.id));
     };
-    g.appendChild(b);
+    box.appendChild(b);
   });
-  box.appendChild(g);
 }
 renderCharPick();
 
@@ -356,7 +327,6 @@ function joinAsPlayer(){
   if(!db){ $("join-err").textContent = "Firebase 尚未設定，請通知主持人"; return; }
   me.name = name; me.isHost = false;
   localStorage.setItem("tcrr_name", name);
-  Sound.unlock();
   const pRef = gameRef.child("players/"+me.id);
   pRef.child("name").set(name);
   pRef.child("avatar").set(me.avatar || "");
@@ -373,7 +343,6 @@ $("pin").addEventListener("keydown", e => { if(e.key==="Enter") hostLogin(); });
 function hostLogin(){
   if($("pin").value !== String(HOST_PIN)){ $("host-err").textContent = "PIN 碼錯誤"; return; }
   me.isHost = true;
-  Sound.unlock();
   startHost();
 }
 
@@ -436,13 +405,11 @@ function runTimer(elBig, elBar, onEnd){
   clearInterval(timerHandle);
   const dur = (state.duration || QUESTION_SECONDS) * 1000;
   const start = state.startAt || now();
-  let lastTickSec = -1;
   function tick(){
     const left = Math.max(0, dur - (now() - start));
     const secs = Math.ceil(left/1000);
     if(elBig) elBig.textContent = secs;
     if(elBar) elBar.style.width = (left/dur*100) + "%";
-    if(secs <= 5 && secs > 0 && secs !== lastTickSec){ lastTickSec = secs; Sound.tick(); }
     if(left <= 0){ clearInterval(timerHandle); if(onEnd) onEnd(); }
   }
   tick(); timerHandle = setInterval(tick, 200);
@@ -452,7 +419,7 @@ function renderPlayQuestion(){
   const qi = state.q ?? 0;
   const Q = QUESTIONS[qi];
   if(!Q) return;
-  if(qi !== lastQ){ lastQ = qi; answeredThis = false; Sound.start(); }
+  if(qi !== lastQ){ lastQ = qi; answeredThis = false; }
   show("play");
   $("play-sec").textContent = Q.sec;
   $("play-q").textContent = Q.q;
@@ -477,7 +444,6 @@ function renderPlayQuestion(){
 function submitAnswer(qi, choice, Q, btnEl){
   if(answeredThis) return;
   answeredThis = true;
-  Sound.click();
   const dur = (state.duration || QUESTION_SECONDS) * 1000;
   const start = state.startAt || now();
   const dt = Math.max(0, now() - start);
@@ -519,10 +485,9 @@ function renderPlayReveal(){
   renderDist($("rev-dist"), qi, Q);
   gameRef.child("answers/"+qi+"/"+me.id).once("value", s => {
     const a = s.val();
-    const playSnd = (qi !== lastSoundQ); if(playSnd) lastSoundQ = qi;
-    if(a && a.correct){ $("rev-result").innerHTML = `✅ 答對了！ <span style="color:var(--good)">+${a.gained}</span>`; if(playSnd) Sound.correct(); }
-    else if(a){ $("rev-result").innerHTML = `❌ 答錯了`; if(playSnd) Sound.wrong(); }
-    else { $("rev-result").innerHTML = `⏱️ 未作答`; if(playSnd) Sound.wrong(); }
+    if(a && a.correct){ $("rev-result").innerHTML = `✅ 答對了！ <span style="color:var(--good)">+${a.gained}</span>`; }
+    else if(a){ $("rev-result").innerHTML = `❌ 答錯了`; }
+    else { $("rev-result").innerHTML = `⏱️ 未作答`; }
   });
 }
 
@@ -592,14 +557,13 @@ function startHost(){
 }
 
 function goLive(qi){
-  Sound.click();
   gameRef.child("meta").set({
     state:"live", q:qi,
     startAt: firebase.database.ServerValue.TIMESTAMP,
     duration: QUESTION_SECONDS
   });
 }
-function doReveal(){ Sound.reveal(); gameRef.child("meta").update({ state:"reveal" }); }
+function doReveal(){ gameRef.child("meta").update({ state:"reveal" }); }
 
 function renderHost(){
   if(!me.isHost) return;
