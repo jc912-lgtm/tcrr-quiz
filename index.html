@@ -84,6 +84,7 @@
   .topbar .you{font-size:.9rem; color:var(--muted)}
   .topbar .you b{color:var(--ink)}
   a.hostlink{color:var(--muted); font-size:.82rem; text-decoration:none; border-bottom:1px dotted var(--muted)}
+  .btn-reset{font-size:.78rem; padding:5px 10px; border-radius:8px; margin-left:8px; vertical-align:middle}
   footer{color:#6b73a0; font-size:.78rem; margin-top:22px; text-align:center}
   /* 代表人物選擇（國旗 + 明星名） */
   .avatars{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:6px}
@@ -206,7 +207,8 @@
   <section id="screen-host" class="card hidden">
     <div class="topbar">
       <span class="pill">主持人</span>
-      <span class="you"><b id="host-players">0</b> 人在線</span>
+      <span class="you"><b id="host-players">0</b> 人在線
+        <button id="host-reset" class="btn-ghost btn-reset">↺ 重置</button></span>
     </div>
 
     <!-- 主持人：等待室（含 QR） -->
@@ -552,6 +554,7 @@ function startHost(){
     else goLive(next);
   };
   $("btn-showboard").onclick = () => gameRef.child("meta").update({ state:"board" });
+  $("host-reset").onclick = resetGame;
   // 若尚無 meta，建立 lobby
   gameRef.child("meta").once("value", s => { if(!s.exists()) gameRef.child("meta").set({ state:"lobby", q:-1 }); });
 }
@@ -618,6 +621,8 @@ function renderHostBoard(isFinal){
       if(next>=QUESTIONS.length) gameRef.child("meta").update({state:"final"});
       else goLive(next); };
     bar.appendChild(b);
+    const r=document.createElement("button"); r.className="btn-ghost"; r.textContent="↺ 重置";
+    r.onclick=resetGame; bar.appendChild(r);
   } else {
     const b=document.createElement("button"); b.className="btn-ghost"; b.textContent="重置（清除所有人分數，重新開始）";
     b.onclick=resetGame; bar.appendChild(b);
