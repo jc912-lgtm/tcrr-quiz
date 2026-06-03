@@ -291,6 +291,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <!-- 你的設定與題庫 -->
 <script src="firebase-config.js"></script>
 <script src="questions.js"></script>
@@ -314,6 +315,7 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   gameRef = db.ref("games/" + ROOM);
+  firebase.auth().signInAnonymously().catch(e => console.error("anon auth:", e));
 } catch(e){
   alert("Firebase 尚未設定完成，請先填好 firebase-config.js。\n\n" + e.message);
 }
