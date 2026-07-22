@@ -284,13 +284,14 @@
   </section>
 
   <footer>
-    資料來源：IWF TCRR 2025 與官方修訂附件（as of 05 Nov 2025）網站版權 JC 所有
+    IWF TCRR 2025 · 教學用互動問答 · 資料來源：IWF TCRR 2025 與官方修訂附件（as of 05 Nov 2025）<br>Copyright © 2026 Jessie Lan
   </footer>
 </div>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <!-- 你的設定與題庫 -->
 <script src="firebase-config.js"></script>
 <script src="questions.js"></script>
@@ -314,8 +315,16 @@ try {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   gameRef = db.ref("games/" + ROOM);
+  firebase.auth().signInAnonymously().catch(e => console.error("anon auth:", e));
 } catch(e){
   alert("Firebase 尚未設定完成，請先填好 firebase-config.js。\n\n" + e.message);
+}
+
+// 等匿名登入完成才存取資料庫（資料庫規則要求「已登入」時才不會被擋）
+function whenAuthed(cb){
+  if(!db) return;
+  if(firebase.auth().currentUser) return cb();
+  const off = firebase.auth().onAuthStateChanged(u => { if(u){ off(); cb(); } });
 }
 
 // ---- 伺服器時間校正 ----
@@ -362,12 +371,14 @@ function joinAsPlayer(){
   if(!db){ $("join-err").textContent = "Firebase 尚未設定，請通知主持人"; return; }
   me.name = name; me.isHost = false;
   localStorage.setItem("tcrr_name", name);
-  const pRef = gameRef.child("players/"+me.id);
-  pRef.child("name").set(name);
-  pRef.child("avatar").set(me.avatar || "");
-  pRef.child("score").transaction(v => v==null ? 0 : v);  // 已有分數則保留
   $("lobby-name").textContent = name;
-  startPlayer();
+  whenAuthed(() => {
+    const pRef = gameRef.child("players/"+me.id);
+    pRef.child("name").set(name);
+    pRef.child("avatar").set(me.avatar || "");
+    pRef.child("score").transaction(v => v==null ? 0 : v);  // 已有分數則保留
+    startPlayer();
+  });
 }
 
 // 主持人入口
@@ -378,7 +389,7 @@ $("pin").addEventListener("keydown", e => { if(e.key==="Enter") hostLogin(); });
 function hostLogin(){
   if($("pin").value !== String(HOST_PIN)){ $("host-err").textContent = "PIN 碼錯誤"; return; }
   me.isHost = true;
-  startHost();
+  whenAuthed(startHost);
 }
 
 // ---- 共用：作答百分比長條圖 ----
